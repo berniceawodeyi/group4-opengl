@@ -161,7 +161,7 @@ void drawDodecahedron() {
 
         glNormal3f(normal.x, normal.y, normal.z);
 
-        glColor3f(0.50f, 0.18f, 0.85f);
+        glColor4f(0.50f, 0.18f, 0.85f, 0.82f);
 
         for (int index : face) {
             Vec3 v = DODECAHEDRON_VERTICES[index];
@@ -174,6 +174,9 @@ void drawDodecahedron() {
 
 void setupLighting() {
     glEnable(GL_DEPTH_TEST);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
