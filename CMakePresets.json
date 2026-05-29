@@ -1,0 +1,15 @@
+﻿{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "windows-vs2022-vcpkg",
+            "displayName": "Windows VS2022 vcpkg",
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "C:/Users/berny/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            }
+        }
+    ]
+}
