@@ -8,6 +8,7 @@
 const float PI = 3.1415926535f;
 const float PHI = 1.6180339887f;
 const float INV_PHI = 1.0f / PHI;
+const float FLOOR_Y = -1.6f;
 
 struct Vec3 {
     float x;
@@ -145,6 +146,38 @@ void setupLighting() {
     glMaterialf(GL_FRONT, GL_SHININESS, 48.0f);
 }
 
+void drawFloor() {
+    // Temporarily disable lighting so the floor color stays simple and readable.
+    glDisable(GL_LIGHTING);
+
+    glColor3f(0.14f, 0.14f, 0.17f);
+
+    glBegin(GL_QUADS);
+    glVertex3f(-6.0f, FLOOR_Y, -4.0f);
+    glVertex3f(6.0f, FLOOR_Y, -4.0f);
+    glVertex3f(6.0f, FLOOR_Y, 4.0f);
+    glVertex3f(-6.0f, FLOOR_Y, 4.0f);
+    glEnd();
+
+    // A soft oval under the object, like a contact shadow.
+    glColor3f(0.04f, 0.035f, 0.05f);
+
+    glBegin(GL_TRIANGLE_FAN);
+    glVertex3f(0.0f, FLOOR_Y + 0.01f, 0.0f);
+
+    for (int i = 0; i <= 48; i++) {
+        float angle = static_cast<float>(i) / 48.0f * 2.0f * PI;
+        float x = cosf(angle) * 1.35f;
+        float z = sinf(angle) * 0.55f;
+
+        glVertex3f(x, FLOOR_Y + 0.01f, z);
+    }
+
+    glEnd();
+
+    glEnable(GL_LIGHTING);
+}
+
 int main() {
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW.\n";
@@ -196,12 +229,16 @@ int main() {
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
-        glTranslatef(0.0f, 0.0f, -5.0f);
+        glTranslatef(0.0f, -0.2f, -7.0f);
+
+        drawFloor();
 
         float time = static_cast<float>(glfwGetTime());
-        glRotatef(time * 40.0f, 0.0f, 1.0f, 0.0f);
 
+        glPushMatrix();
+        glRotatef(time * 40.0f, 0.0f, 1.0f, 0.0f);
         drawDodecahedron();
+        glPopMatrix();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
