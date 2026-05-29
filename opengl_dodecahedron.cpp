@@ -11,21 +11,22 @@ const float INV_PHI = 1.0f / PHI;
 const float FLOOR_Y = -1.6f;
 const float START_SCALE = 0.85f;
 const float GROWN_SCALE = 1.35f;
-const float GROW_SECONDS = 2.0f;
 const float REST_CENTER_Y = FLOOR_Y + PHI * START_SCALE;
-const float PEAK_CENTER_Y = REST_CENTER_Y + 3.2f;
+const float PEAK_CENTER_Y = REST_CENTER_Y + 2.4f;
 
 const float GRAVITY = 9.8f;
 
 const float REST_SECONDS = 1.0f;
 const float LEVITATE_SECONDS = 3.0f;
 const float ORBIT_SECONDS = 4.0f;
-const float FALL_SECONDS = 0.81f;
+const float GROW_SECONDS = 2.0f;
+const float FALL_SECONDS = 0.57f;
 const float BOUNCE_SECONDS = 0.32f;
 
 const float LOOP_SECONDS =
 REST_SECONDS +
 LEVITATE_SECONDS +
+ORBIT_SECONDS +
 GROW_SECONDS +
 FALL_SECONDS +
 BOUNCE_SECONDS;
@@ -240,12 +241,10 @@ AnimationPose getPoseForTime(float totalTime) {
     pose.rotationZ = 0.0f;
 
     if (t < REST_SECONDS) {
-        // State 1: resting on the floor at normal size.
         pose.y = REST_CENTER_Y;
         pose.scale = START_SCALE;
     }
     else if (t < REST_SECONDS + LEVITATE_SECONDS) {
-        // State 2: heavy levitation.
         float localTime = t - REST_SECONDS;
         float progress = localTime / LEVITATE_SECONDS;
         float eased = easeInOutCubic(progress);
@@ -253,23 +252,32 @@ AnimationPose getPoseForTime(float totalTime) {
         pose.y = REST_CENTER_Y + (PEAK_CENTER_Y - REST_CENTER_Y) * eased;
         pose.scale = START_SCALE;
     }
-    else if (t < REST_SECONDS + LEVITATE_SECONDS + GROW_SECONDS) {
-        // State 3: suspended growth at the top.
+    else if (t < REST_SECONDS + LEVITATE_SECONDS + ORBIT_SECONDS) {
         float localTime = t - REST_SECONDS - LEVITATE_SECONDS;
+
+        pose.y = PEAK_CENTER_Y;
+        pose.scale = START_SCALE;
+
+        pose.rotationX += localTime * 24.0f;
+        pose.rotationY += localTime * 32.0f;
+        pose.rotationZ += sinf(localTime * 0.75f) * 5.0f;
+    }
+    else if (t < REST_SECONDS + LEVITATE_SECONDS + ORBIT_SECONDS + GROW_SECONDS) {
+        float localTime = t - REST_SECONDS - LEVITATE_SECONDS - ORBIT_SECONDS;
         float progress = localTime / GROW_SECONDS;
         float eased = easeInOutCubic(progress);
 
         pose.y = PEAK_CENTER_Y;
         pose.scale = START_SCALE + (GROWN_SCALE - START_SCALE) * eased;
 
-        pose.rotationX += localTime * 18.0f;
-        pose.rotationY += localTime * 26.0f;
+        pose.rotationX += ORBIT_SECONDS * 24.0f + localTime * 18.0f;
+        pose.rotationY += ORBIT_SECONDS * 32.0f + localTime * 26.0f;
     }
     else {
-        // State 4: gravity-driven fall while staying large.
-        float localTime = t - REST_SECONDS - LEVITATE_SECONDS - GROW_SECONDS;
-
+        float localTime = t - REST_SECONDS - LEVITATE_SECONDS - ORBIT_SECONDS - GROW_SECONDS;
         float grownRestY = FLOOR_Y + PHI * GROWN_SCALE;
+
+        pose.scale = GROWN_SCALE;
 
         if (localTime < FALL_SECONDS) {
             pose.y = PEAK_CENTER_Y - 0.5f * GRAVITY * localTime * localTime;
@@ -277,21 +285,17 @@ AnimationPose getPoseForTime(float totalTime) {
             if (pose.y < grownRestY) {
                 pose.y = grownRestY;
             }
-
-            pose.scale = GROWN_SCALE;
         }
         else {
             float bounceT = (localTime - FALL_SECONDS) / BOUNCE_SECONDS;
             bounceT = clamp01(bounceT);
 
             float bounce = sinf(bounceT * PI) * (1.0f - bounceT) * 0.14f;
-
             pose.y = grownRestY + bounce;
-            pose.scale = GROWN_SCALE;
         }
 
-        pose.rotationX += GROW_SECONDS * 18.0f + localTime * 10.0f;
-        pose.rotationY += GROW_SECONDS * 26.0f + localTime * 14.0f;
+        pose.rotationX += ORBIT_SECONDS * 24.0f + GROW_SECONDS * 18.0f + localTime * 10.0f;
+        pose.rotationY += ORBIT_SECONDS * 32.0f + GROW_SECONDS * 26.0f + localTime * 14.0f;
     }
 
     return pose;
@@ -348,7 +352,7 @@ int main() {
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
-        glTranslatef(0.0f, -0.2f, -7.0f);
+        glTranslatef(0.0f, -1.0f, -10.5f);
 
         drawFloor();
 
