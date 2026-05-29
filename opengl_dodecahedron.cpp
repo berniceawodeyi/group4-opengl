@@ -9,11 +9,39 @@ const float PI = 3.1415926535f;
 const float PHI = 1.6180339887f;
 const float INV_PHI = 1.0f / PHI;
 const float FLOOR_Y = -1.6f;
+const float START_SCALE = 0.85f;
+const float GROWN_SCALE = 1.35f;
+const float GROW_SECONDS = 2.0f;
+const float REST_CENTER_Y = FLOOR_Y + PHI * START_SCALE;
+const float PEAK_CENTER_Y = REST_CENTER_Y + 3.2f;
+
+const float GRAVITY = 9.8f;
+
+const float REST_SECONDS = 1.0f;
+const float LEVITATE_SECONDS = 3.0f;
+const float ORBIT_SECONDS = 4.0f;
+const float FALL_SECONDS = 0.81f;
+const float BOUNCE_SECONDS = 0.32f;
+
+const float LOOP_SECONDS =
+REST_SECONDS +
+LEVITATE_SECONDS +
+GROW_SECONDS +
+FALL_SECONDS +
+BOUNCE_SECONDS;
 
 struct Vec3 {
     float x;
     float y;
     float z;
+};
+
+struct AnimationPose {
+    float y;
+    float scale;
+    float rotationX;
+    float rotationY;
+    float rotationZ;
 };
 
 const std::array<Vec3, 20> DODECAHEDRON_VERTICES = { {
@@ -92,6 +120,29 @@ Vec3 normalize(Vec3 v) {
         v.y / length,
         v.z / length
     };
+}
+
+float clamp01(float value) {
+    if (value < 0.0f) {
+        return 0.0f;
+    }
+
+    if (value > 1.0f) {
+        return 1.0f;
+    }
+
+    return value;
+}
+
+float easeInOutCubic(float t) {
+    t = clamp01(t);
+
+    if (t < 0.5f) {
+        return 4.0f * t * t * t;
+    }
+
+    float f = -2.0f * t + 2.0f;
+    return 1.0f - (f * f * f) / 2.0f;
 }
 
 void drawDodecahedron() {
@@ -178,6 +229,74 @@ void drawFloor() {
     glEnable(GL_LIGHTING);
 }
 
+AnimationPose getPoseForTime(float totalTime) {
+    float t = fmodf(totalTime, LOOP_SECONDS);
+
+    AnimationPose pose;
+    pose.y = REST_CENTER_Y;
+    pose.scale = START_SCALE;
+    pose.rotationX = -16.0f;
+    pose.rotationY = 22.0f;
+    pose.rotationZ = 0.0f;
+
+    if (t < REST_SECONDS) {
+        // State 1: resting on the floor at normal size.
+        pose.y = REST_CENTER_Y;
+        pose.scale = START_SCALE;
+    }
+    else if (t < REST_SECONDS + LEVITATE_SECONDS) {
+        // State 2: heavy levitation.
+        float localTime = t - REST_SECONDS;
+        float progress = localTime / LEVITATE_SECONDS;
+        float eased = easeInOutCubic(progress);
+
+        pose.y = REST_CENTER_Y + (PEAK_CENTER_Y - REST_CENTER_Y) * eased;
+        pose.scale = START_SCALE;
+    }
+    else if (t < REST_SECONDS + LEVITATE_SECONDS + GROW_SECONDS) {
+        // State 3: suspended growth at the top.
+        float localTime = t - REST_SECONDS - LEVITATE_SECONDS;
+        float progress = localTime / GROW_SECONDS;
+        float eased = easeInOutCubic(progress);
+
+        pose.y = PEAK_CENTER_Y;
+        pose.scale = START_SCALE + (GROWN_SCALE - START_SCALE) * eased;
+
+        pose.rotationX += localTime * 18.0f;
+        pose.rotationY += localTime * 26.0f;
+    }
+    else {
+        // State 4: gravity-driven fall while staying large.
+        float localTime = t - REST_SECONDS - LEVITATE_SECONDS - GROW_SECONDS;
+
+        float grownRestY = FLOOR_Y + PHI * GROWN_SCALE;
+
+        if (localTime < FALL_SECONDS) {
+            pose.y = PEAK_CENTER_Y - 0.5f * GRAVITY * localTime * localTime;
+
+            if (pose.y < grownRestY) {
+                pose.y = grownRestY;
+            }
+
+            pose.scale = GROWN_SCALE;
+        }
+        else {
+            float bounceT = (localTime - FALL_SECONDS) / BOUNCE_SECONDS;
+            bounceT = clamp01(bounceT);
+
+            float bounce = sinf(bounceT * PI) * (1.0f - bounceT) * 0.14f;
+
+            pose.y = grownRestY + bounce;
+            pose.scale = GROWN_SCALE;
+        }
+
+        pose.rotationX += GROW_SECONDS * 18.0f + localTime * 10.0f;
+        pose.rotationY += GROW_SECONDS * 26.0f + localTime * 14.0f;
+    }
+
+    return pose;
+}
+
 int main() {
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW.\n";
@@ -234,10 +353,20 @@ int main() {
         drawFloor();
 
         float time = static_cast<float>(glfwGetTime());
+        AnimationPose pose = getPoseForTime(time);
 
         glPushMatrix();
-        glRotatef(time * 40.0f, 0.0f, 1.0f, 0.0f);
+
+        glTranslatef(0.0f, pose.y, 0.0f);
+
+        glRotatef(pose.rotationX, 1.0f, 0.0f, 0.0f);
+        glRotatef(pose.rotationY, 0.0f, 1.0f, 0.0f);
+        glRotatef(pose.rotationZ, 0.0f, 0.0f, 1.0f);
+
+        glScalef(pose.scale, pose.scale, pose.scale);
+
         drawDodecahedron();
+
         glPopMatrix();
 
         glfwSwapBuffers(window);
