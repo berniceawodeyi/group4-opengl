@@ -226,7 +226,7 @@ void setupLighting() {
     glMaterialf(GL_FRONT, GL_SHININESS, 24.0f);
 }
 
-void drawFloor() {
+void drawFloor(float objectScale) {
     // Temporarily disable lighting so the floor color stays simple and readable.
     glDisable(GL_LIGHTING);
 
@@ -247,8 +247,10 @@ void drawFloor() {
 
     for (int i = 0; i <= 48; i++) {
         float angle = static_cast<float>(i) / 48.0f * 2.0f * PI;
-        float x = cosf(angle) * 1.35f;
-        float z = sinf(angle) * 0.55f;
+        float shadowScale = objectScale / START_SCALE;
+
+        float x = cosf(angle) * 1.35f * shadowScale;
+        float z = sinf(angle) * 0.55f * shadowScale;
 
         glVertex3f(x, FLOOR_Y + 0.01f, z);
     }
@@ -407,9 +409,9 @@ int main() {
 
         glTranslatef(0.0f, -1.0f, -10.5f);
 
-        drawFloor();
-
         AnimationPose pose = getPoseForTime(animationTime);
+
+        drawFloor(pose.scale);
 
         glPushMatrix();
 
