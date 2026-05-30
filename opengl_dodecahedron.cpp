@@ -163,7 +163,7 @@ void drawDodecahedron() {
 
         glNormal3f(normal.x, normal.y, normal.z);
 
-        glColor4f(0.50f, 0.18f, 0.85f, 0.8f);
+        glColor4f(0.50f, 0.16f, 0.90f, 0.55f);
 
         for (int index : face) {
             Vec3 v = DODECAHEDRON_VERTICES[index];
@@ -174,11 +174,34 @@ void drawDodecahedron() {
     }
 }
 
+void drawDodecahedronOutline() {
+    glDisable(GL_LIGHTING);
+
+    glLineWidth(3.0f);
+    glColor3f(0.72f, 0.22f, 1.0f);
+
+    for (const auto& face : DODECAHEDRON_FACES) {
+        glBegin(GL_LINE_LOOP);
+
+        for (int index : face) {
+            Vec3 v = DODECAHEDRON_VERTICES[index];
+            glVertex3f(v.x, v.y, v.z);
+        }
+
+        glEnd();
+    }
+
+    glLineWidth(1.0f);
+    glEnable(GL_LIGHTING);
+}
+
 void setupLighting() {
     glEnable(GL_DEPTH_TEST);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glDepthMask(GL_TRUE);
 
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
@@ -399,6 +422,7 @@ int main() {
         glScalef(pose.scale, pose.scale, pose.scale);
 
         drawDodecahedron();
+        drawDodecahedronOutline();
 
         glPopMatrix();
 
