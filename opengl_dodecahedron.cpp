@@ -5,6 +5,8 @@
 #include <iostream>
 #include <cmath>
 
+bool isPaused = false;
+float animationTime = 0.0f;
 const float PI = 3.1415926535f;
 const float PHI = 1.6180339887f;
 const float INV_PHI = 1.0f / PHI;
@@ -161,7 +163,7 @@ void drawDodecahedron() {
 
         glNormal3f(normal.x, normal.y, normal.z);
 
-        glColor4f(0.50f, 0.18f, 0.85f, 0.82f);
+        glColor4f(0.50f, 0.18f, 0.85f, 0.8f);
 
         for (int index : face) {
             Vec3 v = DODECAHEDRON_VERTICES[index];
@@ -189,16 +191,16 @@ void setupLighting() {
     GLfloat lightPosition[] = { -3.0f, 4.0f, 5.0f, 1.0f };
     GLfloat lightAmbient[] = { 0.18f, 0.16f, 0.22f, 1.0f };
     GLfloat lightDiffuse[] = { 0.85f, 0.80f, 1.00f, 1.0f };
-    GLfloat lightSpecular[] = { 1.00f, 0.95f, 1.00f, 1.0f };
+    GLfloat lightSpecular[] = { 0.35f, 0.25f, 0.45f, 1.0f };
 
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
     glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
     glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
 
-    GLfloat materialSpecular[] = { 0.85f, 0.65f, 1.00f, 1.0f };
+    GLfloat materialSpecular[] = { 0.25f, 0.18f, 0.35f, 1.0f };
     glMaterialfv(GL_FRONT, GL_SPECULAR, materialSpecular);
-    glMaterialf(GL_FRONT, GL_SHININESS, 48.0f);
+    glMaterialf(GL_FRONT, GL_SHININESS, 24.0f);
 }
 
 void drawFloor() {
@@ -304,6 +306,20 @@ AnimationPose getPoseForTime(float totalTime) {
     return pose;
 }
 
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (action != GLFW_PRESS) {
+        return;
+    }
+
+    if (key == GLFW_KEY_ESCAPE) {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+
+    if (key == GLFW_KEY_SPACE) {
+        isPaused = !isPaused;
+    }
+}
+
 int main() {
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW.\n";
@@ -330,9 +346,20 @@ int main() {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
+    glfwSetKeyCallback(window, keyCallback);
+
     setupLighting();
 
+    double previousTime = glfwGetTime();
+
     while (!glfwWindowShouldClose(window)) {
+        double currentTime = glfwGetTime();
+        float deltaTime = static_cast<float>(currentTime - previousTime);
+        previousTime = currentTime;
+
+        if (!isPaused) {
+            animationTime += deltaTime;
+        }
         int width;
         int height;
         glfwGetFramebufferSize(window, &width, &height);
@@ -359,8 +386,7 @@ int main() {
 
         drawFloor();
 
-        float time = static_cast<float>(glfwGetTime());
-        AnimationPose pose = getPoseForTime(time);
+        AnimationPose pose = getPoseForTime(animationTime);
 
         glPushMatrix();
 
